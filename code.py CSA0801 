@@ -1,0 +1,90 @@
+# TASK 1 — Milk Payment Program (Analysis implemented in code)
+
+# ---------- 3. NAMED CONSTANTS ----------
+MIN_LITRES = 0.0          # float — milk quantity cannot be negative
+MAX_LITRES = 10000.0      # float — reasonable daily upper limit
+MIN_FAT = 2.0             # float — fat % lower bound
+MAX_FAT = 7.0             # float — fat % upper bound
+MIN_SNF = 5.0             # float — SNF % lower bound (assumption)
+MAX_SNF = 10.0            # float — SNF % upper bound (assumption)
+BASE_RATE = 35.0          # float — ₹ per litre at reference fat/SNF
+FAT_BONUS_PER_UNIT = 1.5  # float — ₹/litre added per unit fat above 6.0
+SNF_BONUS_PER_UNIT = 1.0  # float — ₹/litre added per unit SNF above 8.5
+REFERENCE_FAT = 6.0       # float
+REFERENCE_SNF = 8.5       # float
+MORNING = "M"             # str — shift code
+EVENING = "E"             # str — shift code
+VALID_SHIFTS = (MORNING, EVENING)
+# int — farmer ID (6-digit); bool — result of validation checks
+
+# ---------- 2. OUTPUTS + payment calculation ----------
+def rate_per_litre(fat: float, snf: float) -> float:
+    """Output: rate per litre (float)."""
+    rate = BASE_RATE
+    if fat > REFERENCE_FAT:
+        rate += (fat - REFERENCE_FAT) * FAT_BONUS_PER_UNIT
+    if snf > REFERENCE_SNF:
+        rate += (snf - REFERENCE_SNF) * SNF_BONUS_PER_UNIT
+    return round(rate, 2)
+
+# ---------- 5. VALIDATION RULES ----------
+def is_valid_fat(fat: float) -> bool:   return MIN_FAT <= fat <= MAX_FAT
+def is_valid_snf(snf: float) -> bool:   return MIN_SNF <= snf <= MAX_SNF
+def is_valid_litres(l: float) -> bool:  return MIN_LITRES < l <= MAX_LITRES
+def is_valid_shift(s: str) -> bool:     return s in VALID_SHIFTS
+def is_valid_farmer_id(fid: int) -> bool:
+    return isinstance(fid, int) and 100000 <= fid <= 999999
+
+# ---------- 1. INPUT ----------
+def get_positive_float(prompt: str, lo: float, hi: float) -> float:
+    while True:
+        try:
+            value = float(input(prompt))
+            if lo <= value <= hi:
+                return value
+            print(f"Value must be between {lo} and {hi}.")
+        except ValueError:
+            print("Enter a valid number.")
+
+def get_farmer_record() -> tuple:
+    """Inputs: farmer ID (int), litres (float), fat % (float),
+    SNF % (float), shift (str). Stored as a TUPLE (list-based design)."""
+    while True:
+        try:
+            fid = int(input("Farmer ID (6-digit): "))
+            if is_valid_farmer_id(fid):
+                break
+            print("ID must be a 6-digit integer.")
+        except ValueError:
+            print("ID must be an integer.")
+    litres = get_positive_float("Litres (0-10000): ", MIN_LITRES + 0.01, MAX_LITRES)
+    fat = get_positive_float(f"Fat % ({MIN_FAT}-{MAX_FAT}): ", MIN_FAT, MAX_FAT)
+    snf = get_positive_float(f"SNF % ({MIN_SNF}-{MAX_SNF}): ", MIN_SNF, MAX_SNF)
+    shift = ""
+    while not is_valid_shift(shift := input(f"Shift ({MORNING}/{EVENING}): ").strip().upper()):
+        print("Invalid shift.")
+    return (fid, litres, fat, snf, shift)
+
+# ---------- MAIN ----------
+def main():
+    records = []              # list of tuples — one entry per collection
+    n = int(input("Number of collection entries: "))
+
+    for _ in range(n):
+        fid, litres, fat, snf, shift = get_farmer_record()
+        rate = rate_per_litre(fat, snf)          # Output: rate/litre
+        payment = round(litres * rate, 2)        # Output: payment amount
+        records.append((fid, shift, litres, rate, payment))
+        print(f"Farmer {fid} [{shift}]: rate ₹{rate}/L, payment ₹{payment}\n")
+
+    # Output: ten-day totals per farmer
+    totals = {}
+    for fid, shift, litres, rate, payment in records:
+        totals[fid] = totals.get(fid, 0.0) + payment
+
+    print("=== Ten-Day Payment Totals ===")
+    for fid, total in totals.items():
+        print(f"Farmer {fid}: ₹{round(total, 2)}")
+
+if __name__ == "__main__":
+    main()
